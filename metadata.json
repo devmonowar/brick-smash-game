@@ -1,0 +1,6 @@
+{
+  "name": "Brick Smash",
+  "description": "Arcade brick breaker mobile game featuring dynamic ball physics, responsive paddle controls, power-ups, multiple brick types, and 10 neon-styled levels.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
