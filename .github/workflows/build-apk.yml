@@ -1,0 +1,62 @@
+name: Build Brick Smash APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK (cmdline-tools)
+        run: |
+          if [ -z "$ANDROID_HOME" ] || [ ! -d "$ANDROID_HOME/cmdline-tools/latest" ]; then
+            SDK_HOME="${HOME}/android-sdk"
+            curl -sL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+            unzip -q cmdline-tools.zip -d "${SDK_HOME}/cmdline-tools-tmp"
+            mkdir -p "${SDK_HOME}/cmdline-tools"
+            mv "${SDK_HOME}/cmdline-tools-tmp/cmdline-tools" "${SDK_HOME}/cmdline-tools/latest"
+            rm -rf cmdline-tools.zip "${SDK_HOME}/cmdline-tools-tmp"
+            echo "ANDROID_HOME=${SDK_HOME}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Accept Android licenses
+        run: yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+
+      - name: Set up Gradle (with caching)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Generate debug keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore debug.keystore \
+            -storepass android -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Build Debug APK
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: brick-smash-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
